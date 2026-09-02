@@ -1,0 +1,12 @@
+# Build output
+build/
+
+# Project configuration (contains WiFi credentials)
+sdkconfig
+sdkconfig.old
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
