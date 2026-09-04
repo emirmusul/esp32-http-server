@@ -20,16 +20,20 @@ partition is needed and the assets consume no RAM.
 
 ## Hardware
 
-| DHT22 pin | Connection |
-|-----------|------------|
-| 1 (VCC)   | 3V3 |
-| 2 (DATA)  | GPIO 4, configurable |
-| 3         | not connected |
-| 4 (GND)   | GND |
+This project uses a three-pin DHT22 breakout module. Pin labels vary between
+manufacturers, so check the silkscreen on your own board.
 
-A 10 kΩ pull-up resistor is required between the data line and 3V3. The sensor
-only pulls the line low, so without the pull-up the line floats and the driver
-reads noise. Bare-board modules that already carry the resistor do not need it.
+| Module pin | Connection |
+|------------|------------|
+| `+` / `VCC` | 3V3 |
+| `out` / `DATA` / `S` | GPIO 4, configurable |
+| `-` / `GND` | GND |
+
+Breakout modules carry the required pull-up resistor on the board, so no
+external component is needed. A bare four-pin DHT22 does need a 10 kΩ resistor
+between the data line and 3V3: the sensor only ever pulls the line low, so
+without a pull-up the line floats and the driver reads noise. On the bare part
+the third pin is unused.
 
 GPIO 4 is used because it has no role during boot. Avoid GPIO 0, 2, 12 and 15:
 those are strapping pins, and pulling them to the wrong level makes the board
