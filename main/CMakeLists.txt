@@ -6,4 +6,7 @@ idf_component_register(SRCS "esp32-http-server.c"
                                 esp_wifi
                                 esp_event
                                 esp_netif
-                                esp_http_server)
+                                esp_http_server
+                       EMBED_FILES "www/index.html"
+                                   "www/style.css"
+                                   "www/app.js")
