@@ -31,4 +31,11 @@ menu "esp32-http-server Configuration"
             Delay between two sensor readings. The DHT22 needs at least
             2000 ms between samples, so do not go below that.
 
+    config MDNS_HOSTNAME
+        string "mDNS hostname"
+        default "esp32"
+        help
+            The board answers to <hostname>.local on the local network.
+            Letters, digits and hyphens only.
+
 endmenu

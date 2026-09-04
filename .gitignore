@@ -10,3 +10,4 @@ sdkconfig.old
 
 # Editor
 .vscode/
+managed_components/

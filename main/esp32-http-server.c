@@ -4,6 +4,7 @@
 #include "wifi_sta.h"
 #include "http_server.h"
 #include "sensor.h"
+#include "mdns_service.h"
 
 static const char *TAG = "app_main";
 
@@ -22,6 +23,11 @@ void app_main(void)
     if (wifi_sta_init() != ESP_OK) {
         ESP_LOGE(TAG, "WiFi init failed, aborting");
         return;
+    }
+
+    // Not fatal: the board is still reachable by IP if mDNS fails.
+    if (mdns_service_start() != ESP_OK) {
+        ESP_LOGW(TAG, "mDNS unavailable, reach the board by IP instead");
     }
 
     if (sensor_start() != ESP_OK) {

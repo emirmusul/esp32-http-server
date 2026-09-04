@@ -20,6 +20,8 @@ extern const uint8_t style_css_start[]  asm("_binary_style_css_start");
 extern const uint8_t style_css_end[]    asm("_binary_style_css_end");
 extern const uint8_t app_js_start[]     asm("_binary_app_js_start");
 extern const uint8_t app_js_end[]       asm("_binary_app_js_end");
+extern const uint8_t favicon_svg_start[] asm("_binary_favicon_svg_start");
+extern const uint8_t favicon_svg_end[]   asm("_binary_favicon_svg_end");
 
 typedef struct {
     const char    *uri;
@@ -34,6 +36,7 @@ static const static_asset_t s_assets[] = {
     { "/index.html", "text/html",              index_html_start, index_html_end },
     { "/style.css",  "text/css",               style_css_start,  style_css_end  },
     { "/app.js",     "application/javascript", app_js_start,     app_js_end     },
+    { "/favicon.svg", "image/svg+xml",         favicon_svg_start, favicon_svg_end },
 };
 
 #define ASSET_COUNT (sizeof(s_assets) / sizeof(s_assets[0]))
@@ -62,7 +65,12 @@ static esp_err_t static_get_handler(httpd_req_t *req)
 
     ESP_LOGW(TAG, "No asset registered for %s", req->uri);
     httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Asset not found");
-    return ESP_FAIL;
+
+    // A 404 is a valid response, not a handler failure. Returning ESP_FAIL
+    // would make httpd log "uri handler execution failed" and close the
+    // socket, forcing the browser into a new TCP handshake for the next
+    // request on what should have been a kept-alive connection.
+    return ESP_OK;
 }
 
 
@@ -107,8 +115,9 @@ static esp_err_t sensor_get_handler(httpd_req_t *req)
         return httpd_resp_send_500(req);
     }
 
-    ESP_LOGI(TAG, "GET /api/sensor -> %.1f C, %.1f %%, age %lld ms",
-             reading.temperature, reading.humidity, age_ms);
+    ESP_LOGI(TAG, "GET /api/sensor -> %.1f C, %.1f %%, age %lld ms, fd %d",
+             reading.temperature, reading.humidity, age_ms,
+             httpd_req_to_sockfd(req));
 
     esp_err_t err = httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
     cJSON_free(body);
