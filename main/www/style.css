@@ -73,3 +73,10 @@ h1 {
 .status.ok {
   color: #5fd08a;
 }
+.status.warn {
+  color: #e8b64c;
+}
+
+.status.error {
+  color: #e8685d;
+}
