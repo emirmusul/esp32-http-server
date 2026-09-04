@@ -3,6 +3,7 @@
 
 #include "wifi_sta.h"
 #include "http_server.h"
+#include "sensor.h"
 
 static const char *TAG = "app_main";
 
@@ -20,6 +21,11 @@ void app_main(void)
 
     if (wifi_sta_init() != ESP_OK) {
         ESP_LOGE(TAG, "WiFi init failed, aborting");
+        return;
+    }
+
+    if (sensor_start() != ESP_OK) {
+        ESP_LOGE(TAG, "Sensor task failed to start");
         return;
     }
 

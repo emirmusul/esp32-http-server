@@ -18,4 +18,17 @@ menu "esp32-http-server Configuration"
         help
             Number of reconnection attempts before giving up.
 
+    config DHT_GPIO
+        int "DHT22 data GPIO"
+        default 4
+        help
+            GPIO number wired to the DHT22 data line.
+
+    config DHT_INTERVAL_MS
+        int "Sensor sampling interval (ms)"
+        default 2000
+        help
+            Delay between two sensor readings. The DHT22 needs at least
+            2000 ms between samples, so do not go below that.
+
 endmenu

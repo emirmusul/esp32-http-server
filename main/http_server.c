@@ -1,9 +1,13 @@
+#include <math.h>
 #include <string.h>
 
 #include "esp_log.h"
 #include "esp_http_server.h"
+#include "esp_timer.h"
+#include "cJSON.h"
 
 #include "http_server.h"
+#include "sensor.h"
 
 static const char *TAG = "http_server";
 
@@ -61,6 +65,63 @@ static esp_err_t static_get_handler(httpd_req_t *req)
     return ESP_FAIL;
 }
 
+
+// Returns the most recent sensor sample as JSON. The sensor itself is polled
+// by a background task, so this handler never touches the hardware and
+// returns within microseconds.
+static esp_err_t sensor_get_handler(httpd_req_t *req)
+{
+    sensor_reading_t reading;
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+
+    if (!sensor_get_latest(&reading)) {
+        ESP_LOGW(TAG, "GET /api/sensor before the first successful reading");
+        httpd_resp_set_status(req, "503 Service Unavailable");
+        return httpd_resp_send(req, "{\"error\":\"no reading yet\"}",
+                               HTTPD_RESP_USE_STRLEN);
+    }
+
+    const int64_t age_ms = (esp_timer_get_time() - reading.timestamp_us) / 1000;
+
+    cJSON *root = cJSON_CreateObject();
+    if (root == NULL) {
+        return httpd_resp_send_500(req);
+    }
+
+    // The sensor is only accurate to 0.1 units, and a float promoted to
+    // double exposes its binary rounding error (26.4f prints as
+    // 26.399999618530273). Round in double space so cJSON emits one decimal.
+    const double temperature = round((double) reading.temperature * 10.0) / 10.0;
+    const double humidity    = round((double) reading.humidity * 10.0) / 10.0;
+
+    cJSON_AddNumberToObject(root, "temperature", temperature);
+    cJSON_AddNumberToObject(root, "humidity", humidity);
+    cJSON_AddNumberToObject(root, "age_ms", (double) age_ms);
+
+    char *body = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (body == NULL) {
+        return httpd_resp_send_500(req);
+    }
+
+    ESP_LOGI(TAG, "GET /api/sensor -> %.1f C, %.1f %%, age %lld ms",
+             reading.temperature, reading.humidity, age_ms);
+
+    esp_err_t err = httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+    cJSON_free(body);
+    return err;
+}
+
+static const httpd_uri_t sensor_uri = {
+    .uri      = "/api/sensor",
+    .method   = HTTP_GET,
+    .handler  = sensor_get_handler,
+    .user_ctx = NULL,
+};
+
 static const httpd_uri_t static_uri = {
     .uri      = "/*",
     .method   = HTTP_GET,
@@ -86,6 +147,7 @@ httpd_handle_t http_server_start(void)
 
     // Registration order matters: httpd returns the first matching handler,
     // so the "/*" catch-all must always be registered last.
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &sensor_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &static_uri));
 
     ESP_LOGI(TAG, "Server started, %u asset(s) available", (unsigned) ASSET_COUNT);
